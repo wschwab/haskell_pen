@@ -127,3 +127,40 @@ main = do
   let lots = allocatePeople (length people) triangles
 
   writeFile "tut4.svg" $ writePolygons $ concat $ zipWith ($) (cycle rainbow) lots
+
+  let findLotCenter :: [Polygon] -> Point
+      findLotCenter p = let (l,t,r,b) = boundingRect p
+                            m@(x,y)   = ((r+1)/2, (b+t)/2)
+                            (lh,rh)   = sliceX x p
+                            (th,bh)   = sliceY y $ lh ++ rh
+                            centerOrder p1 p2 = compare (distance p1 m) (distance p2 m)
+                        in minimumBy (comparing $ distance m) $ concat $ th ++ bh
+
+  let makeDot :: Point -> Polygon
+      makeDot (x,y) = [(x-2, y-2),(x+2, y-2),(x+2,y+2),(x-2,y+2)]
+
+  let centers = map findLotCenter lots
+
+  let spots = blue $ map makeDot centers
+
+  writeFile "tut5.svg" $ writePolygons $ (green park) ++ spots
+
+  let shortestLinks :: Int -> [Link] -> [Link]
+      shortestLinks n = (take n).(sortBy $ comparing linkLength)
+        where linkLength [a,b] = distance a b
+
+  let sittingNeighbors :: Int -> [Point] -> [Link]
+      sittingNeighbors n p = nub $ shortestLinks (n * (length p)) [[a,b] | a <- p,b <- p, a /= b]
+
+  let sitting = sittingNeighbors 4 centers
+
+  writeFile "tut6.svg" $ writePolygons $ (green park) ++ spots ++ (red sitting)
+
+  let walkingNeighbors :: Int -> [Point] -> [Link]
+      walkingNeighbors n l = nub $ concatMap myNeighbors l
+        where myNeighbors :: Point -> [Link]
+              myNeighbors p = shortestLinks n [sort [p,c] | c <- l, p /= c]
+
+  let walking = walkingNeighbors 4 centers
+
+  writeFile "tut7.svg" $ writePolygons $ (green park) ++ spots ++ (red walking)
