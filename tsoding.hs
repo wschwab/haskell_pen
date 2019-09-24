@@ -42,7 +42,8 @@ getMiddle :: String -> String
 getMiddle s
     | odd n     = [s !! halfN]
     | otherwise = [s !! (halfN -1), s !! halfN]
-    where halfN = length s
+    where n     = length s
+          halfN = n `div` 2
 
 -- fifth set
 -- from two lists return how many numbers fulfill 1) all numbers of first array
@@ -65,3 +66,31 @@ main5 = do [n, m] <- readIntList
            as     <- readIntList
            bs     <- readIntList
            putStrLn $ show $ solve5 as bs
+
+-- sixth set
+-- given to positions and velocities, determine if two participants can land on the
+-- same spot
+-- defined in problem that x1 starts off behind x2 (x1 < x2)
+-- as such, if v2 >= v1 for sure no
+-- then we can just make an equation solving where the two meet, and see if it has
+-- an integer solution
+solve6 :: [Int] -> String
+solve6 [x1,v1,x2,v2]
+  | v2 < v1 && (x2 - x1) `mod` (v1 - v2) == 0 = "YES"
+  | otherwise = "NO"
+
+main6 :: IO ()
+main6 = interact $ solve6 . map read . words
+
+-- seventh
+-- given a list of 'scores', count how many times the player had a new low or high
+-- score (ea. time the new 'game' resulted in a score higher or lower than the
+-- previous extremes)
+record :: ([Int] -> Int) -> [Int] -> Int
+record f xs = (length $ group $ map f $ tail $ inits xs) - 1
+
+solve7 :: [Int] -> [Int]
+solve7 xs = [record maximum xs, record minimum xs]
+
+main7 :: IO ()
+main7 = interact $ unwords . map show . solve7 . map read . tail . words
