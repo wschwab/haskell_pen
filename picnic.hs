@@ -187,3 +187,26 @@ main = do
       similarityLine l [p1,p2] = (similarityColor (findPerson l p1) (findPerson l p2), [p1,p2])
 
   writeFile "tut8.svg" $ writePolygons $ map (similarityLine starting_placement) sitting
+
+  let picnicEnergy :: [Link] -> EnergyFunction Placement
+      picnicEnergy 1 a = sum $ map linkEnergy 1
+          where linkEnergy :: Link -> Int
+                linkEnergy [p1,p2] = mismatches (findPerson a p1) (findPerson a p2)
+
+  let picnicMotion :: [Link] -> MotionFunction Placement
+      picnicMotion l r a = let (n,r2) = randomR (0,(length 1)-1) r
+                               [p1,p2] = l!!n
+                           in (r2,(p1,findPerson a p2):(p2,findPerson a p1):(filter (not.((flip elem) [p1,p2]).fst) a))
+  let picnicTemperature :: TemperatureFunction
+      picnicTemperature m c = 50.0 * (exp (0.0 - (5.0 * ((fromIntegral c) / (fromIntegral m)))))
+
+  let picnicTransitionalProbability :: TransitionProbabilityFunction
+      picnicTransitionalProbability e1 e2 t = exp ((fromIntegral (e1-e2)) / t)
+
+  let annealing_time = 500
+
+  putStr "starting energy: "
+  print $ picnicEnergy sitting starting_placement
+
+  putStr "strating temperature: "
+  print $ picnicTemperature annealing_time annealing_time
