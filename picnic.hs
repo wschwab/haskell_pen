@@ -189,12 +189,12 @@ main = do
   writeFile "tut8.svg" $ writePolygons $ map (similarityLine starting_placement) sitting
 
   let picnicEnergy :: [Link] -> EnergyFunction Placement
-      picnicEnergy 1 a = sum $ map linkEnergy 1
+      picnicEnergy l a = sum $ map linkEnergy l
           where linkEnergy :: Link -> Int
                 linkEnergy [p1,p2] = mismatches (findPerson a p1) (findPerson a p2)
 
   let picnicMotion :: [Link] -> MotionFunction Placement
-      picnicMotion l r a = let (n,r2) = randomR (0,(length 1)-1) r
+      picnicMotion l r a = let (n,r2) = randomR (0,(length l)-1) r
                                [p1,p2] = l!!n
                            in (r2,(p1,findPerson a p2):(p2,findPerson a p1):(filter (not.((flip elem) [p1,p2]).fst) a))
   let picnicTemperature :: TemperatureFunction
@@ -208,5 +208,38 @@ main = do
   putStr "starting energy: "
   print $ picnicEnergy sitting starting_placement
 
-  putStr "strating temperature: "
+  putStr "starting temperature: "
   print $ picnicTemperature annealing_time annealing_time
+
+  let anneal_tick :: MotionFunction a -> TransitionProbabilityFunction -> EnergyFunction a -> Float -> (StdGen,a) -> (StdGen,a)
+      anneal_tick mf tpf ef t (r,p) = let (r2,p2) = mf r p
+                                          (n, r3) = random r2
+                                      in (r3,
+                                          if n < tpf (ef p) (ef p2) t
+                                          then p2
+                                          else p)
+
+  let anneal :: EnergyFunction a -> MotionFunction a -> TransitionProbabilityFunction -> TemperatureFunction -> Int -> StdGen -> a -> a
+      anneal ef mf tpf tf m r s = snd $ foldl' (flip (anneal_tick mf tpf ef)) (r,s) (map (tf m) [0..m])
+
+  random_generator <- getStdGen
+
+  putStr "starting annealing..."
+  putStr "number of annealing steps: "
+  print annealing_time
+
+  let ideal_placement = anneal
+                        (picnicEnergy sitting)
+                        (picnicMotion walking)
+                        picnicTransitionalProbability
+                        picnicTemperature
+                        annealing_time
+                        random_generator
+                        starting_placement
+
+  writeFile "tut9.svg" $ writePolygons $ map (similarityLine ideal_placement) sitting
+
+  putStr "Done!\nfinal energy: "
+  print $ picnicEnergy sitting ideal_placement
+  putStr "final temperature: "
+  print $ picnicTemperature 0 annealing_time
